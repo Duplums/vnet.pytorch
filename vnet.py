@@ -59,7 +59,7 @@ class InputTransition(nn.Module):
         out = self.bn1(self.conv1(x))
         # split input in to 16 channels
         x16 = torch.cat((x, x, x, x, x, x, x, x,
-                         x, x, x, x, x, x, x, x), 0)
+                         x, x, x, x, x, x, x, x), 1)
         out = self.relu1(torch.add(out, x16))
         return out
 
@@ -102,6 +102,7 @@ class UpTransition(nn.Module):
         out = self.do1(x)
         skipxdo = self.do2(skipx)
         out = self.relu1(self.bn1(self.up_conv(out)))
+        print(out.shape, skipxdo.shape)
         xcat = torch.cat((out, skipxdo), 1)
         out = self.ops(xcat)
         out = self.relu2(torch.add(out, xcat))

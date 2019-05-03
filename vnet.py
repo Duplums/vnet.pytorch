@@ -102,7 +102,7 @@ class UpTransition(nn.Module):
         out = self.do1(x)
         skipxdo = self.do2(skipx)
         out = self.relu1(self.bn1(self.up_conv(out)))
-        print(out.shape, skipxdo.shape)
+        # print(out.shape, skipxdo.shape)
         xcat = torch.cat((out, skipxdo), 1)
         out = self.ops(xcat)
         out = self.relu2(torch.add(out, xcat))
@@ -128,6 +128,7 @@ class OutputTransition(nn.Module):
 
         # make channels the last axis
         out = out.permute(0, 2, 3, 4, 1).contiguous()
+        print(out.shape)
         # flatten
         out = out.view(out.numel() // 2, 2)
         out = self.softmax(out)
@@ -174,6 +175,7 @@ class VNet(nn.Module):
         out128 = self.down_tr128(out64)
         out256 = self.down_tr256(out128)
         out = self.up_tr256(out256, out128)
+        # print('out:', out.shape)
         out = self.up_tr128(out, out64)
         out = self.up_tr64(out, out32)
         out = self.up_tr32(out, out16)

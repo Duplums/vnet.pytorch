@@ -32,7 +32,7 @@ class LUConv(nn.Module):
     def __init__(self, nchan, elu):
         super(LUConv, self).__init__()
         self.relu1 = ELUCons(elu, nchan)
-        self.conv1 = nn.Conv3d(nchan, nchan, kernel_size=5, padding=2)
+        self.conv1 = nn.Conv3d(nchan, nchan, kernel_size=5, padding=2, bias=False)
         self.bn1 = ContBatchNorm3d(nchan)
 
     def forward(self, x):
@@ -50,7 +50,7 @@ def _make_nConv(nchan, depth, elu):
 class InputTransition(nn.Module):
     def __init__(self, outChans, elu):
         super(InputTransition, self).__init__()
-        self.conv1 = nn.Conv3d(1, 16, kernel_size=5, padding=2)
+        self.conv1 = nn.Conv3d(1, 16, kernel_size=5, padding=2, bias=False)
         self.bn1 = ContBatchNorm3d(16)
         self.relu1 = ELUCons(elu, 16)
 
@@ -68,7 +68,7 @@ class DownTransition(nn.Module):
     def __init__(self, inChans, nConvs, elu, dropout=False):
         super(DownTransition, self).__init__()
         outChans = 2*inChans
-        self.down_conv = nn.Conv3d(inChans, outChans, kernel_size=2, stride=2)
+        self.down_conv = nn.Conv3d(inChans, outChans, kernel_size=2, stride=2, bias=False)
         self.bn1 = ContBatchNorm3d(outChans)
         self.do1 = passthrough
         self.relu1 = ELUCons(elu, outChans)
@@ -88,7 +88,7 @@ class DownTransition(nn.Module):
 class UpTransition(nn.Module):
     def __init__(self, inChans, outChans, nConvs, elu, dropout=False):
         super(UpTransition, self).__init__()
-        self.up_conv = nn.ConvTranspose3d(inChans, outChans // 2, kernel_size=2, stride=2)
+        self.up_conv = nn.ConvTranspose3d(inChans, outChans // 2, kernel_size=2, stride=2, bias=False)
         self.bn1 = ContBatchNorm3d(outChans // 2)
         self.do1 = passthrough
         self.do2 = nn.Dropout3d()
@@ -112,9 +112,9 @@ class UpTransition(nn.Module):
 class OutputTransition(nn.Module):
     def __init__(self, inChans, elu, nll):
         super(OutputTransition, self).__init__()
-        self.conv1 = nn.Conv3d(inChans, 2, kernel_size=5, padding=2)
+        self.conv1 = nn.Conv3d(inChans, 2, kernel_size=5, padding=2, bias=False)
         self.bn1 = ContBatchNorm3d(2)
-        self.conv2 = nn.Conv3d(2, 2, kernel_size=1)
+        self.conv2 = nn.Conv3d(2, 2, kernel_size=1, bias=True)
         self.relu1 = ELUCons(elu, 2)
         if nll:
             self.softmax = F.log_softmax
@@ -126,13 +126,13 @@ class OutputTransition(nn.Module):
         out = self.relu1(self.bn1(self.conv1(x)))
         out = self.conv2(out)
 
-        # make channels the last axis
-        out = out.permute(0, 2, 3, 4, 1).contiguous()
-        print(out.shape)
-        # flatten
-        out = out.view(out.numel() // 2, 2)
-        out = self.softmax(out)
-        # treat channel 0 as the predicted output
+        # # make channels the last axis
+        # out = out.permute(0, 2, 3, 4, 1).contiguous()
+        # print(out.shape)
+        # # flatten
+        # out = out.view(out.numel() // 2, 2)
+        # out = self.softmax(out)
+        # # treat channel 0 as the predicted output
         return out
 
 
@@ -175,7 +175,6 @@ class VNet(nn.Module):
         out128 = self.down_tr128(out64)
         out256 = self.down_tr256(out128)
         out = self.up_tr256(out256, out128)
-        # print('out:', out.shape)
         out = self.up_tr128(out, out64)
         out = self.up_tr64(out, out32)
         out = self.up_tr32(out, out16)
